@@ -1,5 +1,4 @@
-// controllers/ContentController.js
-const Content  = require('../models/Content');
+const Content = require('../models/Content');
 const multer = require('multer');
 
 // Set up Multer storage
@@ -16,10 +15,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Create content
-exports.createContent = upload.single('file'), async (req, res) => {
+exports.createContent = async (req, res) => {
   try {
-    const { type, themeId, userId, credits } = req.body;
-    const filePath = req.file.path;
+    console.log(req.body);
+    const { type, themeId, userId, credits, text, videoUrl } = req.body;
 
     const theme = await Theme.findByPk(themeId);
 
@@ -31,17 +30,48 @@ exports.createContent = upload.single('file'), async (req, res) => {
     const allowVideos = theme.allowVideos;
     const allowTexts = theme.allowTexts;
 
-    if (
-      (type === 'image' && !allowImages) ||
-      (type === 'video' && !allowVideos) ||
-      (type === 'text' && !allowTexts)
-    ) {
+    let filePath = '';
+
+    // Check the content type and handle file upload or create content accordingly
+    if (type === 'image' && allowImages) {
+      // Upload the image file
+      upload.single('file')(req, res, function (err) {
+        if (err) {
+          return res.status(400).json({ error: 'Failed to upload image file' });
+        }
+        filePath = req.file.path;
+        createContent();
+      });
+    } else if (type === 'video' && allowVideos) {
+      // Upload the video file
+      upload.single('file')(req, res, function (err) {
+        if (err) {
+          return res.status(400).json({ error: 'Failed to upload video file' });
+        }
+        filePath = req.file.path;
+        createContent();
+      });
+    } else if (type === 'text' && allowTexts) {
+      // Create content without file upload
+      createContent();
+    } else {
       return res.status(403).json({ message: 'Content type not allowed for this theme' });
     }
 
-    const content = await Content.create({ type, themeId, userId, credits, filePath });
-
-    res.status(201).json(content);
+    async function createContent() {
+      let content;
+      if (type === 'text') {
+        // Save the text content
+        content = await Content.create({ type, themeId, userId, credits, text });
+      } else if (type === 'video') {
+        // Save the video URL
+        content = await Content.create({ type, themeId, userId, credits, videoUrl });
+      } else {
+        // Save the file path
+        content = await Content.create({ type, themeId, userId, credits, filePath });
+      }
+      res.status(201).json(content);
+    }
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

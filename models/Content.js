@@ -1,4 +1,3 @@
-// models/Content.js
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 const User = require('./User');
@@ -21,10 +20,18 @@ const Content = sequelize.define('Content', {
   },
   filePath: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     validate: {
       notEmpty: true,
     },
+  },
+  text: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  videoUrl: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 });
 
