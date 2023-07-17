@@ -1,11 +1,13 @@
 const Content = require('../models/Content');
 const multer = require('multer');
+const path = require('path');
 const Theme = require('../models/Theme');
+
 
 // Set up Multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    cb(null, path.join(__dirname, '../uploads'));
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '_' + file.originalname);
@@ -18,65 +20,84 @@ const upload = multer({ storage: storage });
 // Create content
 exports.createContent = async (req, res) => {
   try {
-    console.log(req.body);
-    const { type, themeId, userId, credits, text, videoUrl } = req.body;
-    console.log(type);
-    const theme = await Theme.findByPk(themeId);
-
-    if (!theme) {
-      return res.status(404).json({ message: 'Theme not found' });
-    }
-
-    const allowImages = theme.allowImages;
-    const allowVideos = theme.allowVideos;
-    const allowTexts = theme.allowTexts;
-
-    let filePath = '';
-
-    // Check the content type and handle file upload or create content accordingly
-    if (type === 'image' && allowImages) {
-      // Upload the image file
-      await upload.single('file')(req, res);
-      filePath = req.file.path;
-      createContent();
-    } else if (type === 'video' && allowVideos) {
-      // Upload the video file
-      await upload.single('file')(req, res);
-      filePath = req.file.path;
-      createContent();
-    } else if (type === 'text' && allowTexts) {
-      // Create content without file upload
-      createContent();
-    } else {
-      return res.status(403).json({ message: 'Content type not allowed for this theme' });
-    }
-
-    async function createContent() {
-      let content;
-      if (type === 'text') {
-        // Save the text content
-        content = await Content.create({ type, themeId, userId, credits, text });
-      } else if (type === 'video') {
-        // Save the video URL
-        content = await Content.create({ type, themeId, userId, credits, videoUrl });
-      } else {
-        // Save the file path
-        content = await Content.create({ type, themeId, userId, credits, filePath });
+    upload.single('file')(req, res, async function (err) {
+      if (err instanceof multer.MulterError) {
+        // A Multer error occurred
+        console.log(err);
+        return res.status(400).json({ error: err.message });
+      } else if (err) {
+        // An unknown error occurred
+        console.log(err);
+        return res.status(400).json({ error: 'Something went wrong' });
       }
-      res.status(201).json(content);
-    }
+
+      console.log(req.body);
+      const { type, themeId, userId, credits, text, videoUrl } = req.body;
+
+      const theme = await Theme.findByPk(themeId);
+
+      if (!theme) {
+        return res.status(404).json({ message: 'Theme not found' });
+      }
+
+      const allowImages = theme.allowImages;
+      const allowVideos = theme.allowVideos;
+      const allowTexts = theme.allowTexts;
+
+      let filePath = '';
+
+      if (type === 'image' && allowImages) {
+        if (req.file) {
+          filePath = req.file.filename;
+        }
+        await createContent();
+      } else if (type === 'video' && allowVideos) {
+        filePath = videoUrl;
+        await createContent();
+      } else if (type === 'text' && allowTexts) {
+        await createContent();
+      } else {
+        return res.status(403).json({ message: 'Content type not allowed for this theme' });
+      }
+
+      async function createContent() {
+        let content;
+        if (type === 'text') {
+          content = await Content.create({ type, themeId, userId, credits, text, filePath });
+        } else if (type === 'video') {
+          content = await Content.create({ type, themeId, userId, credits, videoUrl, filePath });
+        } else {
+          content = await Content.create({ type, themeId, userId, credits, filePath });
+        }
+        res.status(201).json(content);
+      }
+    });
   } catch (error) {
     console.log(error);
     res.status(400).json({ error: error.message });
   }
 };
 
+
+
+
+
 // Get all contents
 exports.getContents = async (req, res) => {
   try {
     const contents = await Content.findAll();
-    res.json(contents);
+    const modifiedContents = contents.map((content) => {
+      if (content.type === 'image' && content.filePath) {
+        return {
+          ...content.toJSON(),
+          filePath: `http://localhost:3000/uploads/${content.filePath}` // Replace with the appropriate base URL
+        };
+      }
+      return content;
+    });
+    res.json(modifiedContents);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
+
