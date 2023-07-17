@@ -61,7 +61,7 @@ sequelize.sync().then(async () => {
         username: 'example_user',
         email: 'example@example.com',
         password: 'password',
-        role: 'user', // Add the role field with a valid value
+        role: 'admin', // Add the role field with a valid value
       });
 
       // Create themes
