@@ -1,5 +1,6 @@
 const Content = require('../models/Content');
 const multer = require('multer');
+const Theme = require('../models/Theme');
 
 // Set up Multer storage
 const storage = multer.diskStorage({
@@ -19,7 +20,7 @@ exports.createContent = async (req, res) => {
   try {
     console.log(req.body);
     const { type, themeId, userId, credits, text, videoUrl } = req.body;
-
+    console.log(type);
     const theme = await Theme.findByPk(themeId);
 
     if (!theme) {
@@ -35,22 +36,14 @@ exports.createContent = async (req, res) => {
     // Check the content type and handle file upload or create content accordingly
     if (type === 'image' && allowImages) {
       // Upload the image file
-      upload.single('file')(req, res, function (err) {
-        if (err) {
-          return res.status(400).json({ error: 'Failed to upload image file' });
-        }
-        filePath = req.file.path;
-        createContent();
-      });
+      await upload.single('file')(req, res);
+      filePath = req.file.path;
+      createContent();
     } else if (type === 'video' && allowVideos) {
       // Upload the video file
-      upload.single('file')(req, res, function (err) {
-        if (err) {
-          return res.status(400).json({ error: 'Failed to upload video file' });
-        }
-        filePath = req.file.path;
-        createContent();
-      });
+      await upload.single('file')(req, res);
+      filePath = req.file.path;
+      createContent();
     } else if (type === 'text' && allowTexts) {
       // Create content without file upload
       createContent();
@@ -73,6 +66,7 @@ exports.createContent = async (req, res) => {
       res.status(201).json(content);
     }
   } catch (error) {
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 };

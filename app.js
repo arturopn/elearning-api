@@ -39,51 +39,68 @@ app.use((err, req, res, next) => {
 // Port on which the server will listen
 const port = 3000;
 
-// Create a user, themes, and content on server startup
-sequelize.sync({ force: true }).then(async () => {
+// Check if the tables already exist
+const tablesExist = async () => {
   try {
-    // Create a user
-    const user = await User.create({
-      username: 'example_user',
-      email: 'example@example.com',
-      password: 'password',
-      role: 'user', // Add the role field with a valid value
-    });
-
-    // Create themes
-    const themes = await Theme.bulkCreate([
-      { name: 'Theme 1', allowImages: true, allowVideos: true, allowTexts: true },
-      { name: 'Theme 2', allowImages: false, allowVideos: true, allowTexts: false },
-      { name: 'Theme 3', allowImages: true, allowVideos: false, allowTexts: true },
-      { name: 'Theme 4', allowImages: false, allowVideos: false, allowTexts: true },
-      { name: 'Theme 5', allowImages: true, allowVideos: true, allowTexts: false },
-    ]);
-
-    // Create content with text
-    await Content.create({
-      type: 'text',
-      themeId: themes[0].id,
-      userId: user.id,
-      credits: 0,
-      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    });
-
-    // Create content with video
-    await Content.create({
-      type: 'video',
-      themeId: themes[1].id,
-      userId: user.id,
-      credits: 0,
-      videoUrl: 'https://www.youtube.com/watch?v=-nNgJ-rY8Yk&t=465&ab_channel=kikinossj',
-    });
-
-    // Create more content with text and video as desired
-
-    // Start the server
-    app.listen(port, () => {
-      console.log(`Server listening on port ${port}`);
-    });
+    await User.findOne();
+    await Theme.findOne();
+    await Content.findOne();
+    return true;
   } catch (error) {
-    console.error(error);
+    return false;
   }
+};
+
+// Create a user, themes, and content on server startup if tables do not exist
+sequelize.sync().then(async () => {
+  const tablesAlreadyExist = await tablesExist();
+  if (!tablesAlreadyExist) {
+    try {
+      // Create a user
+      const user = await User.create({
+        username: 'example_user',
+        email: 'example@example.com',
+        password: 'password',
+        role: 'user', // Add the role field with a valid value
+      });
+
+      // Create themes
+      const themes = await Theme.bulkCreate([
+        { name: 'Theme 1', allowImages: true, allowVideos: true, allowTexts: true },
+        { name: 'Theme 2', allowImages: false, allowVideos: true, allowTexts: false },
+        { name: 'Theme 3', allowImages: true, allowVideos: false, allowTexts: true },
+        { name: 'Theme 4', allowImages: false, allowVideos: false, allowTexts: true },
+        { name: 'Theme 5', allowImages: true, allowVideos: true, allowTexts: false },
+      ]);
+
+      // Create content with text
+      await Content.create({
+        type: 'text',
+        themeId: themes[0].id,
+        userId: user.id,
+        credits: 0,
+        text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+      });
+
+      // Create content with video
+      await Content.create({
+        type: 'video',
+        themeId: themes[1].id,
+        userId: user.id,
+        credits: 0,
+        videoUrl: 'https://www.youtube.com/watch?v=-nNgJ-rY8Yk&t=465&ab_channel=kikinossj',
+      });
+
+      // Create more content with text and video as desired
+
+      console.log('Initial database setup complete.');
+    } catch (error) {
+      console.error('Error during initial database setup:', error);
+    }
+  }
+
+  // Start the server
+  app.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+  });
 });
