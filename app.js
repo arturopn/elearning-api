@@ -53,8 +53,8 @@ const tablesExist = async () => {
 
 // Create a user, themes, and content on server startup if tables do not exist
 sequelize.sync().then(async () => {
-  const tablesAlreadyExist = await tablesExist();
-  if (!tablesAlreadyExist) {
+ // const tablesAlreadyExist = await tablesExist();
+ // if (!tablesAlreadyExist) {
     try {
       // Create a user
       const user = await User.create({
@@ -97,7 +97,7 @@ sequelize.sync().then(async () => {
     } catch (error) {
       console.error('Error during initial database setup:', error);
     }
-  }
+ // }
 
   // Start the server
   app.listen(port, () => {
