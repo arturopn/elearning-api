@@ -1,10 +1,10 @@
 // config/db.js
 const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize('railway', 'root', 'OOEYU9X4HlpI7dtKaniu', {
-  host: 'containers-us-west-111.railway.app',
+const sequelize = new Sequelize('railway', 'root', 'no60RNEghy2QbfkvMO9a', {
+  host: 'containers-us-west-95.railway.app',
   dialect: 'mysql',
-  port: '7776',
+  port: '7550',
 });
 
 module.exports = { sequelize };
